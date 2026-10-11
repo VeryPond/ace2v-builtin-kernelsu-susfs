@@ -17,6 +17,12 @@ MTK 引导链的证书校验存在 ASN.1 解析逻辑缺陷：**无需任何私�
 | [docs/LK_EXPLOIT.md](docs/LK_EXPLOIT.md) | 信任模型、容器结构、漏洞原理、反汇编证据 |
 | [docs/LK_EXPLOIT_VERIFY.md](docs/LK_EXPLOIT_VERIFY.md) | 真机差分实验、完整利用链、产物哈希 |
 | [docs/LK_AVB_PATCH.md](docs/LK_AVB_PATCH.md) | LK 层 AVB 门禁分析与修补 |
+| [docs/CVE_COMPARISON.md](docs/CVE_COMPARISON.md) | 与 CVE-2023-20696 / CVE-2025-20730 的关系 |
+| [docs/CREDITS.md](docs/CREDITS.md) | **涉及的 CVE、上游仓库与作者** |
+
+分析基于 **kasnria001** 的开源工具
+[pwnage24mtk](https://github.com/kasnria001/pwnage24mtk)；
+完整来源与致谢见 [docs/CREDITS.md](docs/CREDITS.md)。
 
 核心结论：
 
