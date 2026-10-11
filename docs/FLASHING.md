@@ -6,11 +6,11 @@
 
 | 文件 | 分区 | 为什么需要 |
 |---|---|---|
-| `lk_a_green_patched.img` | `lk_a` | 让引导链跳过镜像校验，并把启动状态报成 green |
-| `vendor_boot_a_noinit_v2.img` | `vendor_boot_a` | 去掉会顶掉 ksuinit 的 init，并让安全守卫模块失效 |
-| `boot_builtin_susfs_spoofed_v3.img` | `boot_a` | 内建 KernelSU + SuSFS 的内核 |
+| `lk_a.img` | `lk_a` | 让引导链跳过镜像校验，并把启动状态报成 green |
+| `vendor_boot_a.img` | `vendor_boot_a` | 去掉会顶掉 ksuinit 的 init，并让安全守卫模块失效 |
+| `boot_a.img` | `boot_a` | 内建 KernelSU + SuSFS 的内核 |
 
-`release/` 里还有一个 `SukiSU_SuSFS_Ace2V_AK3_v3.zip`，
+`release/` 里还有一个 `SukiSU_SuSFS_Ace2V_AK3.zip`，
 是卡刷包，里面装的就是上面那个 boot 镜像，刷它等于刷 boot。
 
 ## 刷之前把原厂镜像留一份
@@ -29,9 +29,9 @@ done
 ### 方式一：adb（需要 root）
 
 ```sh
-adb push lk_a_green_patched.img       /data/local/tmp/lk.img
-adb push vendor_boot_a_noinit_v2.img  /data/local/tmp/vb.img
-adb push boot_builtin_susfs_spoofed_v3.img /data/local/tmp/boot.img
+adb push lk_a.img          /data/local/tmp/lk.img
+adb push vendor_boot_a.img /data/local/tmp/vb.img
+adb push boot_a.img        /data/local/tmp/boot.img
 
 adb shell su -c 'dd if=/data/local/tmp/lk.img   of=/dev/block/by-name/lk_a'
 adb shell su -c 'dd if=/data/local/tmp/vb.img   of=/dev/block/by-name/vendor_boot_a'
@@ -42,20 +42,20 @@ adb reboot
 ### 方式二：fastboot
 
 ```sh
-fastboot flash lk_a          lk_a_green_patched.img
-fastboot flash vendor_boot_a vendor_boot_a_noinit_v2.img
-fastboot flash boot_a        boot_builtin_susfs_spoofed_v3.img
+fastboot flash lk_a          lk_a.img
+fastboot flash vendor_boot_a vendor_boot_a.img
+fastboot flash boot_a        boot_a.img
 fastboot reboot
 ```
 
 ### 方式三：卡刷
 
-刷 `SukiSU_SuSFS_Ace2V_AK3_v3.zip` 只处理 boot。
+刷 `SukiSU_SuSFS_Ace2V_AK3.zip` 只处理 boot。
 lk 和 vendor_boot 仍然要用上面两种方式刷。
 
 ## 每个镜像改了什么
 
-### lk_a_green_patched.img
+### lk_a.img
 
 lk 的代码里动了 3 个字节：
 
@@ -70,7 +70,7 @@ lk 的代码里动了 3 个字节：
 
 其它看似大量的差异，是追加数据后整体往后挪造成的，不是又改了别的东西。
 
-### vendor_boot_a_noinit_v2.img
+### vendor_boot_a.img
 
 里面塞了两处改动：
 
@@ -83,7 +83,7 @@ lk 的代码里动了 3 个字节：
 
 DTB 没动，剩下的 892 个文件也和原厂一致。
 
-### boot_builtin_susfs_spoofed_v3.img
+### boot_a.img
 
 换成了重新编译的内核，KernelSU 和 SuSFS 都编在里面，不再用 `.ko`。
 ramdisk 是原厂的，没改。

@@ -13,9 +13,9 @@
 
 | 文件 | 分区 | 改了什么 |
 |---|---|---|
-| `lk_a_green_patched.img` | `lk_a` | 跳过镜像校验，启动状态报 green |
-| `vendor_boot_a_noinit_v2.img` | `vendor_boot_a` | 删掉顶掉 ksuinit 的 init，安全守卫模块失效 |
-| `boot_builtin_susfs_spoofed_v3.img` | `boot_a` | 内建 KernelSU + SuSFS 的内核 |
+| `lk_a.img` | `lk_a` | 跳过镜像校验，启动状态报 green |
+| `vendor_boot_a.img` | `vendor_boot_a` | 删掉顶掉 ksuinit 的 init，安全守卫模块失效 |
+| `boot_a.img` | `boot_a` | 内建 KernelSU + SuSFS 的内核 |
 
 细节看 [docs/FLASHING.md](docs/FLASHING.md)。
 
