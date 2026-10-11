@@ -1,0 +1,18 @@
+# 忽略重复/临时文件
+configs/_dup_config_remove_me
+
+# 大体积原始镜像（按需放在 release/ 或外部）
+*.cpio
+*.bin
+vb_*
+vendor_ramdisk*
+
+# 构建中间产物
+kout/
+kout_test/
+*.o
+*.a
+
+# 系统文件
+.DS_Store
+Thumbs.db
