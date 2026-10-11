@@ -73,8 +73,11 @@
 | **dtb_size** | **321654** |
 | **dtb_addr** | **0x47c80000** |
 
-**DTB 在 vendor_boot 内，不在 boot 分区**。因此替换内核时无需改动
-vendor_boot，DTB 自然保持一致。
+**DTB 在 vendor_boot 内，不在 boot 分区**。所以换内核的时候 DTB 不用动，
+它会跟着 vendor_boot 一起保持原样。
+
+不过这套方案里 vendor_boot 的 ramdisk 还是改了两处（删 `init`、
+给安全守卫模块打补丁），DTB 本身没动。具体见 `FLASHING.md`。
 
 ## 厂商模块
 

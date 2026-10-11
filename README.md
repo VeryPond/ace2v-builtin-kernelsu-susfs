@@ -1,98 +1,83 @@
-# OnePlus Ace 2V (PHP110 / MT6983) - 引导链与内核研究
+# OnePlus Ace 2V (PHP110 / MT6983) 引导链与内核
 
-本项目包含两部分：
+针对 OnePlus Ace 2V 做了两件事：
 
-1. **MTK 引导链证书校验绕过的完整分析与真机验证**（重点）
-2. 内建 KernelSU + SuSFS 的内核方案（落地成果）
+1. 搞清楚 MTK 引导链的证书校验是怎么被绕过的，并在真机上验证
+2. 把 KernelSU 和 SuSFS 编进内核（不用 `.ko`），同时让内核看起来还是原厂的
 
----
+## 三个镜像
 
-## 引导链漏洞（重点）
+完整方案要改三个分区，缺一不可：
 
-MTK 引导链的证书校验存在 ASN.1 解析逻辑缺陷：**无需任何私钥**，
-只需向 CERT2 追加特制块，即可让被篡改的引导子镜像通过校验。
+| 文件 | 分区 | 改了什么 |
+|---|---|---|
+| `lk_a_green_patched.img` | `lk_a` | 跳过镜像校验，启动状态报 green |
+| `vendor_boot_a_noinit_v2.img` | `vendor_boot_a` | 删掉顶掉 ksuinit 的 init，安全守卫模块失效 |
+| `boot_builtin_susfs_spoofed_v3.img` | `boot_a` | 内建 KernelSU + SuSFS 的内核 |
 
-| 文档 | 内容 |
+细节看 [docs/FLASHING.md](docs/FLASHING.md)。
+
+## 做了什么
+
+引导链这边：MTK 用 CERT1/CERT2 给引导镜像签名，但解析证书的那段代码有
+个毛病 —— 往 CERT2 前面塞一段自己造的哈希块，它会拿这里面的值，
+把证书里真正的哈希忽略掉。**整个过程不需要私钥。**
+
+内核这边：SukiSU-Ultra 和 SuSFS 编进内核本体，
+`/proc/modules` 里看不到 `kernelsu.ko`。内核版本串、`/proc/config.gz`
+都伪装成原厂的样子。
+
+当前设备状态：
+
+| 项目 | 值 |
 |---|---|
-| [docs/LK_EXPLOIT.md](docs/LK_EXPLOIT.md) | 信任模型、容器结构、漏洞原理、反汇编证据 |
-| [docs/LK_EXPLOIT_VERIFY.md](docs/LK_EXPLOIT_VERIFY.md) | 真机差分实验、完整利用链、产物哈希 |
-| [docs/LK_AVB_PATCH.md](docs/LK_AVB_PATCH.md) | LK 层 AVB 门禁分析与修补 |
-| [docs/CVE_COMPARISON.md](docs/CVE_COMPARISON.md) | 与 CVE-2023-20696 / CVE-2025-20730 的关系 |
-| [docs/CREDITS.md](docs/CREDITS.md) | **涉及的 CVE、上游仓库与作者** |
+| Bootloader | `flash.locked=1`、`verifiedbootstate=green` |
+| Root | `uid=0`、`context=u:r:ksu:s0` |
+| KernelSU | 内建，版本 40900 |
+| SuSFS | v2.3.0 |
+| 内核版本串 | 和原厂一样 |
+| `/proc/config.gz` | 和原厂一样，看不出 KSU/SuSFS |
 
-分析基于 **kasnria001** 的开源工具
-[pwnage24mtk](https://github.com/kasnria001/pwnage24mtk)；
-完整来源与致谢见 [docs/CREDITS.md](docs/CREDITS.md)。
+## 文档
 
-核心结论：
-
-- 适用形态为 **legacy**（`BIT STRING(原 CERT2 DER)` + `A0{...}`），
-  对应 `bypass_mode=1`"任意对象都进入"的宽松分支
-- **new（V6）形态在本机不成立**
-- 已验证目标：`lk_main_dtb`（LK 校验）与 `lk`（BL2_EXT 校验）
-- 影响：绕过可信启动，等价于不依赖官方解锁取得引导链控制权
-
-分析工具（`tools/pwnage24mtk/`、`tools/lk_analysis/`）与差分实验流程一并收录。
-
----
-
-## 内核方案
-
-把 SukiSU-Ultra（内建）与 SuSFS 编进 OnePlus Ace 2V 的内核，实现
-**无内核模块的 root**，并让内核对外呈现与厂商原厂一致。
-
-刷机后状态：
-
-| 项目 | 结果 |
+| 文件 | 内容 |
 |---|---|
-| Bootloader | `ro.boot.flash.locked=1`、`ro.boot.verifiedbootstate=green` |
-| Root | `uid=0` / `context=u:r:ksu:s0`（SELinux enforcing） |
-| KernelSU | **builtin**，`/proc/modules` 中无 `kernelsu.ko` |
-| SuSFS | v2.3.0（inline hook） |
-| 内核版本串 | 与厂商原厂逐字符一致 |
-| `/proc/config.gz` | 内嵌**原厂 config**，不含任何 KSU/SUSFS 条目 |
+| [docs/LK_EXPLOIT.md](docs/LK_EXPLOIT.md) | 引导链漏洞怎么回事，以及反汇编证据 |
+| [docs/LK_EXPLOIT_VERIFY.md](docs/LK_EXPLOIT_VERIFY.md) | 真机上怎么验证出来的 |
+| [docs/LK_AVB_PATCH.md](docs/LK_AVB_PATCH.md) | LK 里 AVB 校验那部分怎么改 |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 内核方案的思路和踩过的坑 |
+| [docs/BUILD.md](docs/BUILD.md) | 内核怎么编译 |
+| [docs/FLASHING.md](docs/FLASHING.md) | 三个镜像怎么刷、怎么救回来 |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | 遇到的问题和解决办法 |
+| [docs/DEVICE_INFO.md](docs/DEVICE_INFO.md) | 设备、分区、固件信息 |
+| [docs/CVE_COMPARISON.md](docs/CVE_COMPARISON.md) | 和 CVE-2023-20696 / CVE-2025-20730 的关系 |
+| [docs/CREDITS.md](docs/CREDITS.md) | 用到的 CVE、上游仓库和作者 |
+
+引导链那部分用的是 **kasnria001** 的
+[pwnage24mtk](https://github.com/kasnria001/pwnage24mtk)。
 
 ---
 
-## 目录结构
+## 目录
 
 ```
-docs/
-  LK_EXPLOIT.md            引导链漏洞原理与反汇编证据
-  LK_EXPLOIT_VERIFY.md     真机差分验证与完整利用链
-  LK_AVB_PATCH.md          LK 层 AVB 门禁修补
-  ARCHITECTURE.md          内核方案与决策记录
-  BUILD.md                 内核编译流程
-  FLASHING.md              刷机与回滚
-  TROUBLESHOOTING.md       内核侧踩坑记录
-  LK_NOTES.md              bootloader 概览
-  lk/                      LK/AVB 原始分析数据
-  reports/                 pwnage24mtk 探测报告 + CVE 扫描报告
-tools/
-  pwnage24mtk/             MTK 证书工具（parse/sign/verify/build）
-  lk_analysis/             LK 反汇编与差分实验脚本
-  anykernel.sh, make_ak3_zip.sh   AK3 打包
-scripts/                   内核集成 / 编译 / 伪装 / 打包 / 校验
-configs/                   真机 config、KSU/SuSFS 配置、模块清单
-release/                   预编译产物（boot 镜像、AK3 卡刷包）
-patch/                     内核改动 patch 与说明
+docs/          说明文档（见上表）
+tools/         证书处理、LK 反汇编、boot 重打包、AK3 打包
+scripts/       内核集成、编译、伪装、校验脚本
+configs/       原厂 config、KSU/SuSFS 配置片段、模块清单
+release/       编好的镜像
+patch/         对内核源码的改动
 ```
 
----
+## 编译内核时注意
 
-## 快速开始
+三件事不注意就会白忙（详见 `docs/ARCHITECTURE.md`）：
 
-1. 阅读 `docs/BUILD.md` 了解完整构建链路
-2. 预编译产物在 `release/`
-3. 刷机与回滚见 `docs/FLASHING.md`
-
-## 关键结论（务必先读）
-
-见 `docs/ARCHITECTURE.md`。其中三条是这条路能否走通的硬约束：
-
-1. **AVB 必须搬运原厂签名 vbmeta**，不能用 `avbtool --algorithm NONE`
-2. **gzip 头必须是纯净格式**（`FLG=0x00, OS=3`）
-3. **必须使用完整 LLVM 工具链**，否则 LTO/CFI/KASAN 会被静默丢弃
+1. 打包 boot 时要把原厂签名的 vbmeta 原样搬过去，
+   用 `avbtool --algorithm NONE` 生成的无签名结构刷了会一直重启
+2. 内核 gzip 的头部要和原厂一致（`FLG=0x00`、`OS=3`）
+3. 要用完整的 LLVM 工具链。用默认的 GNU nm/ar 会让
+   LTO/CFI/KASAN 在配置阶段被悄悄去掉，厂商模块就对不上了
 
 ## 兼容性
 
@@ -100,5 +85,3 @@ patch/                     内核改动 patch 与说明
 - 固件：`PHP110_11_A.08`
 - 内核：`5.10.110-android12-9`
 - 平台：MediaTek MT6983
-
-> 供研究与个人设备维护使用。刷机有风险，务必先阅读回滚章节。

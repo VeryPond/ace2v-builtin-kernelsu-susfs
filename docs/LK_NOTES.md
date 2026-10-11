@@ -21,8 +21,11 @@
 
 - DTB **不在 boot 分区**，而在 `vendor_boot`
   （头部 `dtb_size=321654`、`dtb_addr=0x47c80000`）
-- 因此替换内核时**无需改动 vendor_boot**，DTB 自然保持一致
+- 换内核时 DTB 不用碰，但它放在 vendor_boot 里，所以本方案
+  仍然替换了整个 vendor_boot 分区（改的是 ramdisk，DTB 原样保留）
 - boot 分区末尾的 AVB 结构需正确搬运（见 ARCHITECTURE.md 第 4.1 节）
+
+> 本文件是早期记录。三个分区各自改了什么，以 `FLASHING.md` 为准。
 
 ## 注意
 
